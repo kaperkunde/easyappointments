@@ -1,0 +1,42 @@
+services:
+  easy-calendar:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+    image: easy-calendar:latest
+    restart: unless-stopped
+    expose:
+      - 80
+    environment:
+      BASE_URL: ${SERVICE_URL_EASYCALENDAR}
+      LANGUAGE: ${LANGUAGE:-english}
+      DEBUG_MODE: ${DEBUG_MODE:-FALSE}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_NAME: ${DB_NAME:-easyappointments}
+      DB_USERNAME: ${DB_USERNAME:-easyappointments}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      GOOGLE_SYNC_FEATURE: ${GOOGLE_SYNC_FEATURE:-FALSE}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MAIL_PROTOCOL: ${MAIL_PROTOCOL:-smtp}
+      MAIL_SMTP_DEBUG: ${MAIL_SMTP_DEBUG:-0}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-1}
+      MAIL_SMTP_HOST: ${MAIL_SMTP_HOST:-}
+      MAIL_SMTP_USER: ${MAIL_SMTP_USER}
+      MAIL_SMTP_PASS: ${MAIL_SMTP_PASS}
+      MAIL_SMTP_CRYPTO: ${MAIL_SMTP_CRYPTO:-tls}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-587}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Easy!Appointments}
+      MAIL_REPLY_TO_ADDRESS: ${MAIL_REPLY_TO_ADDRESS}
+    volumes:
+      - easy_calendar_storage:/var/www/html/storage
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/assets/img/favicon.ico > /dev/null || exit 1']
+      interval: 5s
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  easy_calendar_storage:
