@@ -29,6 +29,8 @@ services:
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Easy!Appointments}
       MAIL_REPLY_TO_ADDRESS: ${MAIL_REPLY_TO_ADDRESS}
+      MIGRATE_DB_WAIT_ATTEMPTS: ${MIGRATE_DB_WAIT_ATTEMPTS:-60}
+      MIGRATE_DB_WAIT_SECONDS: ${MIGRATE_DB_WAIT_SECONDS:-2}
     volumes:
       - easy_calendar_storage:/var/www/html/storage
     healthcheck:
@@ -36,7 +38,7 @@ services:
       interval: 5s
       timeout: 20s
       retries: 10
-      start_period: 60s
+      start_period: 180s
 
 volumes:
   easy_calendar_storage:

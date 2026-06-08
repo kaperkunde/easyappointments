@@ -53,6 +53,8 @@ WORKDIR /var/www/html
 
 COPY docker/production/99-overrides.ini /usr/local/etc/php/conf.d/
 COPY docker/production/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY docker/production/check-db-installed.php /usr/local/bin/check-db-installed.php
+COPY docker/production/migrate-if-installed.sh /usr/local/bin/migrate-if-installed.sh
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -68,6 +70,8 @@ RUN apt-get update \
         curl gd intl ldap mbstring mysqli odbc pdo pdo_mysql xml zip exif gettext bcmath csv event imap inotify redis \
     && a2enmod rewrite \
     && chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/check-db-installed.php \
+    && chmod +x /usr/local/bin/migrate-if-installed.sh \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

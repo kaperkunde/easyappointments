@@ -48,4 +48,9 @@ EOF
 
 chmod -R 777 /var/www/html/storage
 
+if ! /usr/local/bin/migrate-if-installed.sh; then
+    echo "Database migration failed; aborting container startup." >&2
+    exit 1
+fi
+
 exec apache2-foreground
