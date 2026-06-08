@@ -1,0 +1,25 @@
+services:
+  mysql:
+    image: 'mysql:8.0'
+    volumes:
+      - './docker/mysql:/var/lib/mysql'
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootsecret}
+      - MYSQL_DATABASE=${DB_NAME:-easyappointments}
+      - MYSQL_USER=${DB_USERNAME:-easyappointments}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-secret}
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+  easy-calendar:
+    environment:
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - DEBUG_MODE=${DEBUG_MODE:-TRUE}
+    ports: !override
+      - '${PORT:-3000}:80'
+    depends_on:
+      mysql:
+        condition: service_healthy
