@@ -83,22 +83,6 @@ class Booking extends EA_Controller
     }
 
     /**
-     * Verify CSRF token for booking submissions.
-     *
-     * @throws RuntimeException If CSRF token is invalid.
-     */
-    private function verify_csrf_token(): void
-    {
-        $csrf_token = request('csrf_token') ?? $this->input->get_request_header('X-CSRF');
-        $csrf_cookie = $this->input->cookie('csrf_cookie');
-
-        if (empty($csrf_token) || empty($csrf_cookie) || !hash_equals($csrf_cookie, $csrf_token)) {
-            log_message('error', 'Invalid CSRF token in booking request from IP: ' . $this->input->ip_address());
-            throw new RuntimeException('Security validation failed. Please refresh the page and try again.');
-        }
-    }
-
-    /**
      * Render the booking page and display the selected appointment.
      *
      * This method will call the "index" callback to handle the page rendering.
@@ -114,12 +98,12 @@ class Booking extends EA_Controller
 
     /**
      * Render the booking page.
-    /**
-     * Render the booking page.
      */
     public function index(): void
     {
         method('get');
+
+        $embedded = is_embedded_booking_request();
 
         if (!is_app_installed()) {
             redirect('installation');
@@ -357,7 +341,12 @@ class Booking extends EA_Controller
             'appointment_data' => $appointment,
             'provider_data' => $provider ? filter_sensitive_user_data($provider) : null,
             'customer_data' => $customer,
+            'embedded' => $embedded,
         ]);
+
+        $csrf_token = prepare_booking_csrf_for_embed($this->security);
+        script_vars(['csrf_token' => $csrf_token]);
+        html_vars(['booking_csrf_token' => $csrf_token]);
 
         $this->load->view('pages/booking');
     }
@@ -371,7 +360,7 @@ class Booking extends EA_Controller
             method('post');
 
             // Verify CSRF token for booking submissions
-            $this->verify_csrf_token();
+            verify_booking_csrf_token();
 
             $disable_booking = setting('disable_booking');
 
@@ -394,6 +383,25 @@ class Booking extends EA_Controller
             $customer = $post_data['customer'] ?? [];
             $manage_mode = filter_var($post_data['manage_mode'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
+            // Security: Verify hash when updating an existing appointment
+            if ($manage_mode && !empty($appointment['id'])) {
+                $appointment_hash = $post_data['appointment_hash'] ?? '';
+                
+                if (empty($appointment_hash)) {
+                    throw new RuntimeException('Appointment hash is required for updates.');
+                }
+                
+                // Verify the hash matches the appointment being updated
+                $existing_appointments = $this->appointments_model->get([
+                    'id' => $appointment['id'],
+                    'hash' => $appointment_hash
+                ]);
+                
+                if (empty($existing_appointments)) {
+                    throw new RuntimeException('Invalid appointment hash or appointment not found.');
+                }
+            }
+
             // Validate required appointment fields
             if (empty($appointment) || !is_array($appointment)) {
                 throw new InvalidArgumentException('Invalid appointment data.');
@@ -414,6 +422,11 @@ class Booking extends EA_Controller
 
             // Sanitize appointment fields - only allow expected fields
             $appointment = array_intersect_key($appointment, array_flip($this->allowed_appointment_fields));
+
+            // Security: Remove appointment ID if not in manage mode to prevent IDOR attacks
+            if (!$manage_mode && isset($appointment['id'])) {
+                unset($appointment['id']);
+            }
 
             if (!array_key_exists('address', $customer)) {
                 $customer['address'] = '';
