@@ -26,6 +26,11 @@ class Config {
 }
 EOF
 
+if [ -n "${EMBED_ALLOWED_ORIGINS:-}" ]; then
+    embed_origins_escaped=$(printf '%s' "${EMBED_ALLOWED_ORIGINS}" | sed "s/'/\\\\'/g")
+    printf "%s\n" "define('EMBED_ALLOWED_ORIGINS', '${embed_origins_escaped}');" >>/var/www/html/config.php
+fi
+
 cat <<EOF >/var/www/html/application/config/email.php
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
