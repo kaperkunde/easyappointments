@@ -38,6 +38,6 @@ for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
     esac
 done
 
-echo "Warning: Database not reachable after ${MAX_ATTEMPTS} attempts; skipping migrations."
+echo "Error: Database not reachable after ${MAX_ATTEMPTS} attempts; aborting startup." >&2
 
-exit 0
+exit 1
