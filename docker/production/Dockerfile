@@ -76,7 +76,7 @@ RUN apt-get update \
         -o /usr/local/bin/install-php-extensions \
     && chmod +x /usr/local/bin/install-php-extensions \
     && install-php-extensions \
-        curl gd intl ldap mbstring mysqli odbc pdo pdo_mysql xml zip exif gettext bcmath csv event imap inotify redis \
+        curl gd intl ldap mbstring mysqli odbc pdo pdo_mysql xml zip exif gettext bcmath \
     && a2enmod rewrite \
     && chmod +x /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/check-db-installed.php \
