@@ -94,7 +94,13 @@ class EA_Security extends CI_Security
     }
 
     /**
-     * CSRF Set Cookie
+     * Send the CSRF cookie.
+     *
+     * CI_Security uses the positional setcookie() signature, which carries no SameSite attribute, so the configured
+     * value never reached the browser. Send it with the same attributes as the session cookie, so that both are
+     * available in the same contexts.
+     *
+     * When the public booking page runs inside a cross-origin iframe the cookie is sent with SameSite=None instead.
      *
      * @return CI_Security|false
      */
@@ -125,6 +131,18 @@ class EA_Security extends CI_Security
             return $this;
         }
 
-        return parent::csrf_set_cookie();
+        $secure_cookie = (bool) config_item('cookie_secure');
+
+        if ($secure_cookie && !is_https()) {
+            log_message('error', 'CSRF cookie not sent, as a secure cookie requires an HTTPS connection.');
+
+            return false;
+        }
+
+        setcookie($this->_csrf_cookie_name, $this->_csrf_hash, cookie_options($expire));
+
+        log_message('info', 'CSRF cookie sent');
+
+        return $this;
     }
 }

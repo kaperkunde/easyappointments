@@ -11,7 +11,7 @@ RUN composer install \
     --optimize-autoloader \
     --ignore-platform-reqs
 
-FROM node:20-bookworm-slim AS assets
+FROM node:22-bookworm-slim AS assets
 
 WORKDIR /app
 

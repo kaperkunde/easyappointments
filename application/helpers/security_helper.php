@@ -200,6 +200,38 @@ if (!function_exists('is_safe_redirect_url')) {
     }
 }
 
+if (!function_exists('trusted_site_url')) {
+    /**
+     * Build an absolute URL from the operator-configured base URL (Config::BASE_URL),
+     * independent of the client-supplied Host header.
+     *
+     * Use this instead of site_url() for links placed into outbound emails or
+     * notifications. site_url() roots links at the runtime base_url, which is derived
+     * from the client-controlled Host header (see application/config/config.php), so an
+     * anonymous request can poison an emailed link with an attacker-chosen host
+     * (host-header injection -> reset-token disclosure / account takeover).
+     *
+     * @param string $uri Relative URI, e.g. 'recovery/reset?token=abc'.
+     * @param string|null $index_page Front-controller segment; falls back to config when null.
+     *
+     * @return string Absolute URL rooted at Config::BASE_URL.
+     */
+    function trusted_site_url(string $uri = '', ?string $index_page = null): string
+    {
+        if ($index_page === null) {
+            $index_page = get_instance()->config->item('index_page');
+        }
+
+        $base = rtrim(Config::BASE_URL, '/') . '/';
+
+        if (!empty($index_page)) {
+            $base .= $index_page . '/';
+        }
+
+        return $base . ltrim($uri, '/');
+    }
+}
+
 if (!function_exists('log_security_event')) {
     /**
      * Log a security-related event.
@@ -681,13 +713,19 @@ if (!function_exists('verify_booking_csrf_token')) {
 if (!function_exists('apply_frame_embedding_headers')) {
     /**
      * Apply headers that control whether the booking page can be embedded in iframes.
+     *
+     * Booking pages may be framed by the origins configured in EMBED_ALLOWED_ORIGINS; every other response (and every
+     * booking page when no origins are configured) is sent with X-Frame-Options: SAMEORIGIN.
+     *
+     * @return string|null The frame-ancestors directive to add to the Content-Security-Policy header, or null when
+     * framing is restricted by X-Frame-Options alone.
      */
-    function apply_frame_embedding_headers(): void
+    function apply_frame_embedding_headers(): ?string
     {
         if (!is_booking_framing_route()) {
             header('X-Frame-Options: SAMEORIGIN');
 
-            return;
+            return null;
         }
 
         $origins = get_embed_allowed_origins();
@@ -695,12 +733,13 @@ if (!function_exists('apply_frame_embedding_headers')) {
         if (empty($origins)) {
             header('X-Frame-Options: SAMEORIGIN');
 
-            return;
+            return null;
         }
 
         $ancestors = array_merge(["'self'"], $origins);
 
         header_remove('X-Frame-Options');
-        header('Content-Security-Policy: frame-ancestors ' . implode(' ', $ancestors));
+
+        return 'frame-ancestors ' . implode(' ', $ancestors);
     }
 }

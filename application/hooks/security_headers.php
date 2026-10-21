@@ -19,14 +19,35 @@
  */
 function add_security_headers(): void
 {
-    // Prevent XSS attacks - allow inline scripts and styles for the app's functionality
-    // But restrict to same-origin for other resources
+    // Prevent MIME type sniffing
     header('X-Content-Type-Options: nosniff');
 
-    apply_frame_embedding_headers();
+    // Prevent clickjacking attacks. Booking pages may be framed by the origins listed in EMBED_ALLOWED_ORIGINS, in which
+    // case X-Frame-Options is dropped and a frame-ancestors directive is returned for the policy below. Every other
+    // response keeps X-Frame-Options: SAMEORIGIN.
+    $frame_ancestors = apply_frame_embedding_headers();
 
-    // Enable XSS filter in browsers (legacy, but still useful)
-    header('X-XSS-Protection: 1; mode=block');
+    // Content Security Policy. The pages use inline scripts and styles, so those stay allowed, but plugins are blocked
+    // outright. The themes load their web fonts from Google Fonts, and the Google Analytics and Matomo integrations load
+    // their scripts and send their tracking requests to external hosts (Matomo to any host the admin configures), so
+    // scripts, images and connections may come from any HTTPS origin.
+    $csp_directives = [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: https:",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' https:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ];
+
+    if ($frame_ancestors !== null) {
+        $csp_directives[] = $frame_ancestors;
+    }
+
+    header('Content-Security-Policy: ' . implode('; ', $csp_directives));
 
     // Referrer policy for privacy
     header('Referrer-Policy: strict-origin-when-cross-origin');
