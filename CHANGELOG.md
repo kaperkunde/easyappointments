@@ -10,6 +10,10 @@ developers to maintain and readjust their custom modifications on the main proje
 - Booking embed widget for third-party websites: per-service embed code and live preview on the Services admin page, a Calendly-style JavaScript loader with auto-resize, and an `EMBED_ALLOWED_ORIGINS` config option that uses CSP `frame-ancestors` to allowlist trusted embedding origins
 - Stateless CSRF tokens for booking submissions when the public booking page runs inside a cross-origin iframe (third-party cookies are not available)
 
+### Fixed
+
+- Security: The production Docker image now runs PHP 8.2.35, which fixes the critical PHP2Shell remote code execution vulnerabilities (CVE-2026-109618, CVE-2026-109619)
+
 ## [1.6.1] - 2026-10-12
 
 ### Added

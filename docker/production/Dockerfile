@@ -23,7 +23,15 @@ COPY assets ./assets
 
 RUN npx gulp compile
 
-FROM php:8.2-apache
+# Pinned to a patch release so a rebuild cannot reuse a cached, vulnerable base image. 8.2.35 is the first 8.2
+# release that fixes the PHP2Shell remote code execution flaws (CVE-2026-109618, CVE-2026-109619).
+FROM php:8.2.35-apache
+
+# Fail the build when the base image runs a PHP release without the PHP2Shell fix (8.2.35, 8.3.36, 8.4.27, 8.5.12).
+RUN php -r '$fixed = [80200 => 80235, 80300 => 80336, 80400 => 80427, 80500 => 80512]; \
+        $branch = intdiv(PHP_VERSION_ID, 100) * 100; \
+        exit($branch > 80500 || PHP_VERSION_ID >= ($fixed[$branch] ?? PHP_INT_MAX) ? 0 : 1);' \
+    || (echo "PHP $(php -r 'echo PHP_VERSION;') is vulnerable to CVE-2026-109618/CVE-2026-109619." >&2 && exit 1)
 
 ENV BASE_URL="http://localhost"
 ENV LANGUAGE="english"
